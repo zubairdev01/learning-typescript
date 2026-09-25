@@ -1,3 +1,6 @@
+// ********* Type Narrowing & Type Guards *********
+// Covers :  type inference, annotations, union types, literal types, optional params
+
 // PRACTICE 2 Daraz Order Narrowing
 type PendingOrder = { status: "pending"; estimatedDays: number };
 type ShippedOrder = { status: "shipped"; trackingId: string };
