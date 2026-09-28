@@ -1,107 +1,109 @@
+// ********* Type Assertion, Type Unknown and Type Never in Typescript *********
+
+
 // ============================================
-// PROJECT: Chai Shop Order Config
-// Combines: type aliases, interfaces, literal types, intersections, optional & readonly props
+// PROJECT: Smart Form Validator
+// Combines: unknown, type assertions, DOM casting, error handling, never
 // ============================================
 
-// --- 1. Literal types for fixed categories ---
-type ChaiFlavour = "masala" | "ginger" | "lemon" | "elaichi";
-type CupSize = "small" | "medium" | "large";
-
-// --- 2. Base shape (object type alias) ---
-type BaseOrder = {
-  flavour: ChaiFlavour;
-  size: CupSize;
-  sugar: number;
-};
-
-// --- 3. Intersection — every "extra" gets merged into the base order ---
-type WithDelivery = {
-  address: string;
-  deliveryFee: number;
-};
-
-type DeliveryOrder = BaseOrder & WithDelivery;
-
-// --- 4. Optional property — loyalty card isn't always present ---
-type Customer = {
+// --- 1. Safely parse untrusted JSON (like an API response) ---
+type UserProfile = {
   name: string;
-  phone: string;
-  loyaltyCardId?: string; // optional — not every customer has one
+  age: number;
 };
 
-// --- 5. readonly — order ID must never change after creation ---
-type OrderReceipt = {
-  readonly orderId: string;
-  customer: Customer;
-  order: DeliveryOrder;
-  total: number;
-};
+function parseUserProfile(json: string): UserProfile | null {
+  try {
+    const parsed: unknown = JSON.parse(json); // never trust JSON.parse's output blindly
 
-// --- 6. Interface + class implementing a contract ---
-interface Billable {
-  calculateTotal(): number;
-}
-
-class ChaiShopOrder implements Billable {
-  constructor(
-    private baseOrder: BaseOrder,
-    private deliveryFee: number = 0
-  ) {}
-
-  calculateTotal(): number {
-    const basePrice = this.baseOrder.size === "large" ? 150
-      : this.baseOrder.size === "medium" ? 100
-      : 70;
-    return basePrice + this.deliveryFee;
+    // manual validation instead of a raw "as" assertion — safer
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "name" in parsed &&
+      "age" in parsed &&
+      typeof (parsed as any).name === "string" &&
+      typeof (parsed as any).age === "number"
+    ) {
+      return parsed as UserProfile;
+    }
+    return null;
+  } catch (error) {
+    if (error instanceof Error) {
+      console.log("Failed to parse profile:", error.message);
+    }
+    return null;
   }
 }
 
-// --- Putting it together ---
-function generateReceipt(
-  orderId: string,
-  customer: Customer,
-  order: DeliveryOrder
-): OrderReceipt {
-  const shopOrder = new ChaiShopOrder(order, order.deliveryFee);
-  return {
-    orderId,
-    customer,
-    order,
-    total: shopOrder.calculateTotal(),
-  };
+console.log(parseUserProfile('{"name": "Zubair", "age": 21}'));
+console.log(parseUserProfile("not even json")); // triggers the catch block
+
+
+// --- 2. Reading form input safely (DOM casting) ---
+function getInputValue(elementId: string): string {
+  const el = document.getElementById(elementId) as HTMLInputElement | null;
+  if (!el) {
+    throw new Error(`Element #${elementId} not found`);
+  }
+  return el.value.trim();
 }
 
-const receipt = generateReceipt(
-  "ORD-1001",
-  { name: "Zubair", phone: "0300-1234567" }, // no loyaltyCardId — that's fine, it's optional
-  {
-    flavour: "masala",
-    size: "large",
-    sugar: 2,
-    address: "Sheikhupura, Punjab",
-    deliveryFee: 50,
+// usage (only works in a browser environment with a real form):
+// const email = getInputValue("email");
+
+
+// --- 3. Role-based redirect with exhaustiveness checking ---
+type Role = "admin" | "user" | "superadmin";
+
+function redirectBasedOnRole(role: Role): void {
+  switch (role) {
+    case "admin":
+      console.log("Redirecting to admin dashboard");
+      return;
+    case "user":
+      console.log("Redirecting to user dashboard");
+      return;
+    case "superadmin":
+      console.log("Redirecting to superadmin dashboard");
+      return;
+    default:
+      // if you add a new Role later and forget a case above,
+      // TS will error here because `role` won't be assignable to `never`
+      const exhaustiveCheck: never = role;
+      return exhaustiveCheck;
   }
-);
+}
 
-console.log(receipt);
-
-// receipt.orderId = "ORD-9999"; // ❌ TS error — readonly, can't reassign
-
+redirectBasedOnRole("admin");
+redirectBasedOnRole("superadmin");
 
 
+// --- 4. A function that never returns (never type) ---
+function fatalError(message: string): never {
+  throw new Error(message);
+}
+
+function validateAge(age: unknown): number {
+  if (typeof age !== "number" || age < 0) {
+    fatalError("Invalid age provided");
+  }
+  return age as number;
+}
+
+
+
+// 1. Safe LocalStorage Reader
+// Write a function getFromStorage<T>(key: string): T | null that reads a value from localStorage, safely parses it as unknown, validates it against a shape you define, and returns null on any failure (wrap in try/catch).
+
+// 2. Order Status Machine
+// Define type OrderStatus = "placed" | "packed" | "shipped" | "delivered" | "cancelled". Write a getNextStep(status: OrderStatus): string function using a switch with a never-based exhaustiveness check at the end — so if you later add "returned" as a status, TypeScript forces you to handle it.
 
 
 
 
-// Real-world uses
-// Intersection types → merging a base entity with role-specific fields (e.g., User & AdminPermissions)
-// Optional properties → form fields, API responses where some data is genuinely nullable
-// readonly → IDs, timestamps, config values — anything that should be set once and never mutated
-// Interfaces + implements → enforcing that multiple classes (payment methods, API handlers) follow the same contract
-// Homework — 2 more practice builds
-
-// 1. Student Enrollment Card (tie it to something familiar)
-// Create type BaseStudent = { name: string; studentId: string }, then intersect it with type EnrollmentInfo = { semester: number; program: string }. Add an optional scholarshipId?: string. Make studentId readonly.
-
-// 2. Payment Method Contract
-// Define interface PaymentMethod { pay(amount: number): string }. Create two classes — JazzCashPayment and BankTransferPayment — that both implements PaymentMethod. Write a function processPayment(method: PaymentMethod, amount: number) that works with either class.
+// Real-world uses for each concept
+// unknown + validation → parsing API responses, form data, or localStorage values you can't fully trust
+// Type assertions → working with DOM elements, third-party libraries with loose types, or migrating JS to TS
+// Error narrowing → any try/catch block where you actually want to read error.message safely
+// never + exhaustiveness → large apps with many status/role/state types — catches bugs at compile time when someone adds a new case and forgets to handle it elsewhere
