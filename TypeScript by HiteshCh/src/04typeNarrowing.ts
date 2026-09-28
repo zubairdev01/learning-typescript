@@ -1,3 +1,5 @@
+// type narrowing and type guards 
+
 function getChai(kind: string | number) {
     if (typeof kind === "string") {
         return `Making ${kind} chai...`;

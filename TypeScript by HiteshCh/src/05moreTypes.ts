@@ -1,3 +1,5 @@
+// type assertion, type unknown and type never 
+
 let response: any = "42";
 
 let numericLenght: number = (response as string).length;
@@ -68,9 +70,3 @@ function redirectBasedOnRole(role: Role): void {
 function neverReturn():never {
     while(true){}
 }
-
-
-
-
-
-

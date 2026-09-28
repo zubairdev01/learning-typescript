@@ -1,3 +1,5 @@
+// type and interface in TS 
+
 type ChaiOrder = {
     type: string; 
     sugar: number; 
