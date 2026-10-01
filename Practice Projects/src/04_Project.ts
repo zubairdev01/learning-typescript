@@ -1,5 +1,6 @@
 // Combines: type aliases, interfaces, literal types, intersections, optional & readonly props
 
+/*
 type BaseStudent = {
   name: string,
   readonly studentId: string,
@@ -28,6 +29,7 @@ console.log(printCard(s1));
 console.log(printCard(s2)); 
 // s1.studentId = "NEW";       
  
+*/
 
 
 
@@ -37,6 +39,41 @@ console.log(printCard(s2));
 // Define interface PaymentMethod { pay(amount: number): string }. Create two classes — JazzCashPayment and BankTransferPayment — that both implements PaymentMethod. Write a function processPayment(method: PaymentMethod, amount: number) that works with either class.
 
 
-// interface PaymentMethod : pay(amount: number): string {
+interface PaymentMethod {
+  pay(amount : number) : string;
+}
 
-// }
+class JazzCashPayment implements PaymentMethod {
+  constructor (private phone: string) {}
+
+  pay(amount: number): string {
+    return `Paid Rs.${amount} via Jazzcash (${this.phone})`;
+  }
+}
+
+class BankTransferPayment implements PaymentMethod {
+  constructor (private accountNumber: string) {}
+
+  pay(amount: number) : string {
+    return `Paid Rs.${amount} via Bank Transfer to account ${this.accountNumber}`;
+  }
+}
+
+
+function processPayment(method: PaymentMethod, amount: number): string {
+  return method.pay(amount);
+}
+
+console.log(processPayment(new JazzCashPayment("0300-1234567"), 1500));
+console.log(processPayment(new BankTransferPayment("pk00-xxxx-00000"), 40000));
+
+
+
+class EasypaisaPayment implements PaymentMethod {
+  constructor(private phone: string) {}
+
+  pay(amount: number): string {
+    return `Paid Rs.${amount} via Easypaisa (${this.phone})`;
+  }
+}
+console.log(processPayment(new EasypaisaPayment("0300-1285904"), 400));
